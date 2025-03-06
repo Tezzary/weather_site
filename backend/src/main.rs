@@ -6,6 +6,7 @@ use std::io::prelude::*;
 use std::time::SystemTime;
 use chrono::{naive, DateTime};
 
+use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
 
 //const REQUEST_URL: &str = "http://www.bom.gov.au/radar/IDR023.T.202503021144.png";
 
@@ -20,8 +21,10 @@ fn get_date_string_from_timestamp(timestamp: u64) -> String {
     let formatted_date = string_date + &string_time;
     formatted_date
 }
-#[tokio::main]
-async fn main() {
+
+#[get("/")]
+async fn get_images() -> impl Responder {
+    
     let mut timestamp = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs();
 
     let formatted_date = get_date_string_from_timestamp(timestamp);
@@ -45,7 +48,7 @@ async fn main() {
         let request_result = get_req(url.clone()).await;
         if request_result.is_err() {
             println!("failed with initial populaton at i={} with url = {}", i, url);
-            return;
+            //return HttpResponse::InternalServerError()
         }
         //image_data.insert(0, request_result.unwrap()); //oldest images first
         image_data.push(request_result.unwrap());
@@ -59,6 +62,23 @@ async fn main() {
         let image = &image_data[i];
         file.write_all(image).unwrap();
     }
+    //send image bytes to frontend
+    HttpResponse::Ok().body("done")
+}
+
+#[tokio::main]
+async fn main() {
+    
+
+   
+    HttpServer::new(|| {
+        App::new()
+            .service(hello)
+            .route("/hey", web::get().to(manual_hello))
+    })
+    .bind(("127.0.0.1", 8080)).unwrap()
+    .run()
+    .await;
 
 }
 
